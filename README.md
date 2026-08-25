@@ -4,23 +4,7 @@ Predicts win probability for every driver in a race, using only information
 that would have been available before that race happened. Full experiment
 log with every metric, config, and verdict: [REPORT.md](REPORT.md).
 
-## The task, and why "95.7% accurate" was the wrong headline
-
-A prior version of this project reported 95.7% accuracy on a driver-row
-binary win target. That number is the majority-class rate: on a ~20-driver
-grid, "predict every driver loses" is already right 19/20 times per driver
-row, since only one driver per race actually wins. A classifier that always
-predicts 0 scores 95.7% on that framing without having learned anything.
-
-The metric that actually answers "can this system pick race winners" is
-**Hit@1**: of the drivers in a race, does the model's top-ranked pick match
-the actual winner? That's a per-*race* metric (one prediction per race, not
-one per driver-row), and it's the one this project reports throughout.
-
-## Five pipeline defects, and the tell that caught each one
-
-None of these crashed. Every one produced output that looked like a normal
-result until someone noticed a number that was too clean to be real.
+## Five pipeline defects
 
 1. **`constructor_form` doubled feature rows** (Entry 7). A 2-car
    constructor's trailing-form query windowed over per-driver result rows
@@ -65,15 +49,6 @@ result until someone noticed a number that was too clean to be real.
    for a feature that, checked independently, has thousands of distinct
    values — "with feature" and "without feature" were bit-identical runs.
 
-The common thread: none of these five produced an error, a crash, or an
-obviously wrong number. Each one produced a plausible-looking result that
-was wrong specifically because it was *too* regular — an exact zero, a
-zero-width confidence interval, a row count that was exactly double what it
-should have been. A real measurement on noisy data doesn't come out that
-clean. That instinct — treat suspicious tidiness as a bug report, not a good
-result — is the most transferable finding in this project, more so than any
-single accuracy number below.
-
 ## Data and the point-in-time database design
 
 - **Kaggle** (`rohanrao/formula-1-world-championship-1950-2020`): seasons,
@@ -95,7 +70,7 @@ weather specifically: a driver's first-ever race/circuit visit must show
 NULL trailing stats, and a sentinel planted on a future race's weather must
 not move a past `as_of`'s historical average.
 
-## Evaluation protocol: rolling origin, then a locked holdout
+## Evaluation protocol
 
 A single train/test split gives a Bernoulli-trial-sized sample for Hit@1 —
 Entry 4's first 24-race holdout had 95% CIs spanning [0.33, 0.71], too wide
@@ -152,14 +127,6 @@ the model evaluated was `plackett_luce_calibrated_blend`:**
 | spearman | 0.7217 | [0.6688, 0.7741] | -0.0080 | inconclusive |
 | log_loss | 0.1167 | [0.1056, 0.1277] | -1.3255 | improved |
 | brier_score | 0.0349 | [0.0315, 0.0384] | -0.0068 | inconclusive |
-
-**Caveat on this number (Entry 27, Entry 28):** `circuit_win_rate` is one of
-this model's twelve features and was 100% null for all 24 of the 2025
-holdout races, under defect #4 above. The model was trained and evaluated
-under the same unpatched pipeline throughout, so 0.4792 is still a valid
-one-shot read on the model that was actually run — but it's a read on a
-model with a known data gap in one of its twelve features, not a clean
-number.
 
 ## Findings
 
