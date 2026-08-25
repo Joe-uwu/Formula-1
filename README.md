@@ -17,6 +17,63 @@ The metric that actually answers "can this system pick race winners" is
 the actual winner? That's a per-*race* metric (one prediction per race, not
 one per driver-row), and it's the one this project reports throughout.
 
+## Five pipeline defects, and the tell that caught each one
+
+None of these crashed. Every one produced output that looked like a normal
+result until someone noticed a number that was too clean to be real.
+
+1. **`constructor_form` doubled feature rows** (Entry 7). A 2-car
+   constructor's trailing-form query windowed over per-driver result rows
+   instead of aggregating to one row per (constructor, race) first,
+   giving every constructor two rows per race with an unspecified
+   tie-break order between teammates. The tell: a feature-table row count
+   exactly double what one row per driver per race implies. Affected
+   Entries 1–4; fixed before Entry 5.
+2. **Driver code is not a unique natural key** (Entry 13). Kaggle's `code`
+   column collides across F1 history — Verstappen and Vergne are both
+   "VER", plus six more collisions (ALB, HAR, DOO, MAG, MSC, BIA). Found
+   while adding new features and noticing a Red Bull row that didn't fit;
+   confirmed ~25 rows in 2025's FastF1-sourced data had silently landed on
+   a driver retired since 2014. Fixed by keying the resolver on full name
+   instead. Development folds (2017–2023, 100% Kaggle-sourced) were
+   confirmed unaffected by construction.
+3. **Weather queries defined but never called** (Entry 28). `f1/features/
+   queries.py` defines `circuit_weather_history()`, but
+   `build_race_features()` in `f1/features/materialize.py` never calls it.
+   `hist_track_temp_avg`, `hist_wind_speed_avg`, and `hist_rain_rate` are
+   therefore unconditionally null in every row, every fold, always. The
+   tell: exact +0.00000 permutation importance with exact 0.00000 std —
+   bootstrap resampling cannot produce a zero-width interval on real data.
+4. **Circuit-id resolution failure across sources** (Entry 28). The FastF1
+   ingest's circuit `IdResolver` is constructed with key `(name, location)`
+   but called with `(event['Location'], event['Location'])`, which never
+   matches an existing Kaggle circuit row (whose `name` and `location`
+   differ) — so every FastF1-sourced (2025) race mints a brand-new
+   synthetic circuit_id with zero prior history. Confirmed directly: 24/24
+   2025 races have zero prior rows under their assigned circuit_id. Every
+   circuit-keyed feature (`circuit_win_rate`, `circuit_avg_finish`,
+   `circuit_pass_rate_last5`, `circuit_overtaking_difficulty`) is 100% null
+   for all of 2025 as a result — the same "exact zero" tell as #3, on
+   columns that carry real signal everywhere else.
+5. **Ablation harness ignoring `keep_cols`** (Entry 28). `scripts/
+   fix3_nested_reverse_ablation.py`'s `score()` computes `drop_cols`
+   against `FEATURE_COLUMNS` and NaNs those out, intending that whatever
+   remains reaches the model — but `WinModel.fit`/`predict_race` hardcode
+   `df[FEATURE_COLUMNS]` regardless of `keep_cols`. Any candidate not
+   already resident in `FEATURE_COLUMNS` was silently never handed to the
+   model at all. The tell: a zero-width bootstrap CI on a log-loss delta
+   for a feature that, checked independently, has thousands of distinct
+   values — "with feature" and "without feature" were bit-identical runs.
+
+The common thread: none of these five produced an error, a crash, or an
+obviously wrong number. Each one produced a plausible-looking result that
+was wrong specifically because it was *too* regular — an exact zero, a
+zero-width confidence interval, a row count that was exactly double what it
+should have been. A real measurement on noisy data doesn't come out that
+clean. That instinct — treat suspicious tidiness as a bug report, not a good
+result — is the most transferable finding in this project, more so than any
+single accuracy number below.
+
 ## Data and the point-in-time database design
 
 - **Kaggle** (`rohanrao/formula-1-world-championship-1950-2020`): seasons,
@@ -46,16 +103,18 @@ to distinguish any of the systems tested. **Rolling-origin evaluation**
 (Entry 9) fixed that: retrain on all seasons ≤ Y, test on season Y+1, for
 Y = 2016…2024, pooling all 193 test races for the headline bootstrap CIs.
 
-Iterating on the same pooled result for several stages (features, evaluation
-design, model class) risks slowly fitting to it. Stage 4 split the
-evaluation in two:
+Iterating on the same 193-race pooled result for several stages (features,
+evaluation design, model class) risks slowly fitting to it. Stage 4 split
+the evaluation in two:
 
 - **Development folds** — rolling-origin test seasons 2017–2023. Every
   decision from Stage 4 onward (which features to keep, model class,
   calibration) was made by looking only at these folds.
-- **Locked holdout** — test seasons 2024–2025 (48 races). Evaluated exactly
-  once (Entry 27), after every modeling decision was frozen on development
-  folds, and never rerun or cherry-picked against.
+- **Locked holdout** — test seasons 2024–2025 (48 races). Evaluated by
+  `scripts/final_holdout.py`, which refuses to run without an explicit
+  `--final` flag, exactly once (Entry 27), after every modeling decision
+  was frozen on development folds, and never rerun or cherry-picked
+  against.
 
 ## Results
 
@@ -82,8 +141,7 @@ was locked (145 races, Entry 25):**
 | plackett_luce | 0.4897 | 0.8828 | 0.6928 | 0.8603 | 0.7939 | 0.1174 |
 
 **Locked holdout, evaluated exactly once (48 races, 2024–2025, Entry 27) —
-the model evaluated was `plackett_luce_calibrated_blend`, see "Methodology
-notes" below for why:**
+the model evaluated was `plackett_luce_calibrated_blend`:**
 
 | Metric | Value | 95% CI | Δ vs pole-sitter | Verdict |
 |---|---|---|---|---|
@@ -95,99 +153,67 @@ notes" below for why:**
 | log_loss | 0.1167 | [0.1056, 0.1277] | -1.3255 | improved |
 | brier_score | 0.0349 | [0.0315, 0.0384] | -0.0068 | inconclusive |
 
+**Caveat on this number (Entry 27, Entry 28):** `circuit_win_rate` is one of
+this model's twelve features and was 100% null for all 24 of the 2025
+holdout races, under defect #4 above. The model was trained and evaluated
+under the same unpatched pipeline throughout, so 0.4792 is still a valid
+one-shot read on the model that was actually run — but it's a read on a
+model with a known data gap in one of its twelve features, not a clean
+number.
+
 ## Findings
 
-**Noise floor (Entry 23).** A pure-noise control feature, permuted the same
-way as every real feature, produces a log-loss-increase distribution of
-mean=-0.00026, std=0.00225, 95% range [-0.00459, +0.00354] over 20 trials.
-Re-read against that floor, only 4 of Entry 11's 18 original features
-(quali_position, grid_position, constructor_wins_cum, avg_quali_last5) are
-distinguishable from noise. Entry 28 adds a caveat to that re-read: 6 of the
-other 14 features (circuit_win_rate, hist_wind_speed_avg, hist_track_temp_avg,
-circuit_avg_finish, circuit_pass_rate_last5, hist_rain_rate) weren't actually
-measured against real data — they were structurally null in the slice Entry
-11 used (a dead `circuit_weather_history()` call and a circuit-id
-cross-source resolution bug, see below), so "indistinguishable from noise"
-should read "never measured" for those six.
+**Noise floor.** A pure-noise control feature, permuted the same way as
+every real feature, produces a log-loss-increase distribution over 20
+independent trials of mean=-0.00026, std=0.00225, 95% range
+[-0.00459, +0.00354]. Re-read against that floor, only 4 of Entry 11's 18
+original features (quali_position, grid_position, constructor_wins_cum,
+avg_quali_last5) are distinguishable from noise. Six more of the fourteen
+"within noise floor" verdicts (circuit_win_rate, hist_wind_speed_avg,
+hist_track_temp_avg, circuit_avg_finish, circuit_pass_rate_last5,
+hist_rain_rate) weren't actually measured against real data — they were
+structurally null under defects #3 and #4 above, so "indistinguishable from
+noise" should read "never measured" for those six.
 
-**Nested feature selection (Entry 24, retracting Entry 20).** Entry 20's
-original Stage 5 feature-selection pass reported hit_at_1=0.5793 after
-choosing which of 9 candidate features to keep by looking at their score on
-development folds, then reporting that same score on those same folds —
-selection bias, not a measurement. Redone with nested selection (choose on
-2017–2021, score fresh on held-out 2022–2023): the honest generalization
-number is a flat Δhit@1 = +0.0000 [+0.0000, +0.0000]. Entry 28 found that 4
-of the 9 candidates in that rerun were never actually given to the model due
-to an ablation-script bug (see "Methodology notes"), so the honest reading
-of Entry 24 is "5 of 9 candidates were tested and failed to clear the bar; 4
-were never tested" rather than "9 of 9 failed." The feature set that
-survives either way is the original batch-0 12 features, none of Stage 5's
-additions.
+**Nested feature selection, corrected.** Stage 5's original feature-selection
+pass reported hit_at_1=0.5793 after choosing which of 9 candidate features
+to keep by looking at their score on development folds, then reporting that
+same score on those same folds — selection bias, not a measurement,
+retracted and redone with nested selection (choose on 2017–2021, score
+fresh on held-out 2022–2023). Of the 9 candidates, 5 were tested properly
+and failed to clear a CI-excludes-zero bar; the other 4 never reached the
+model at all, due to defect #5 above, and so were never actually tested.
+Either way, the feature set that survives is the original batch-0 12
+features — none of Stage 5's 9 additions.
 
-**Upset breakdown (Entry 12).** Conditioning Hit@1 on whether the pole
-sitter actually won: pole won (n=104) → Hit@1=0.8077 [0.7308, 0.8846]; pole
-did not win (n=89) → Hit@1=0.2022 [0.1233, 0.2809]. The model beats a
-1-in-19 random-guess floor on upset races (CI lower bound 0.1233 > 0.0526),
-but the bulk of its apparent accuracy comes from races the pole sitter wins
-outright — which grid position alone already predicts.
+**Upset breakdown.** Conditioning Hit@1 on whether the pole sitter actually
+won: pole won (n=104) → Hit@1=0.8077 [0.7308, 0.8846]; pole did not win
+(n=89) → Hit@1=0.2022 [0.1233, 0.2809]. Against the 1-in-19 (~0.0526)
+random-guess floor for an upset race, the model clears it (CI lower bound
+0.1233 > 0.0526) — but the bulk of its apparent accuracy comes from races
+the pole sitter wins outright, which grid position alone already predicts.
 
-**Per-fold instability (Entry 9).** Rolling-origin per-season Hit@1 ranges
-from 0.381 (2018, 2019) to 0.864 (2023) — a 48-point swing on comparable
-20-24-race single-season samples, all from the same feature set and model
-class. That range is evidence a two-season-or-shorter evaluation window on
-this dataset is not stable enough to trust a single season's Hit@1 as
-representative; it's part of why this project moved to pooled rolling-origin
-evaluation (Entry 9) and a locked multi-season holdout (Entry 27) instead of
-reporting any single season's number.
+**Per-fold instability.** Rolling-origin per-season Hit@1 ranges from 0.381
+(2018, 2019) to 0.864 (2023) — a 48-point swing across comparable 20–24-race
+single-season samples, all from the same feature set and model class. That
+range is evidence a two-season-or-shorter evaluation window on this dataset
+is not stable enough to trust a single season's Hit@1 as representative; it
+is part of why this project moved to pooled rolling-origin evaluation and a
+locked multi-season holdout instead of reporting any single season's number.
 
-## Methodology notes
-
-Three data-pipeline bugs and one measurement-methodology bug were found and
-fixed or documented during this project, plus one retraction and one
-selection error:
-
-1. **`constructor_form` doubled feature rows** (Entry 7). A 2-car
-   constructor's trailing-form query windowed over per-driver result rows
-   instead of aggregating to one row per (constructor, race) first,
-   doubling every feature row with an unspecified tie-break order between
-   teammates. Affected Entries 1–4; fixed before Entry 5.
-2. **Driver code is not a unique natural key** (Entry 13). Kaggle's `code`
-   column collides across F1 history (Verstappen and Vergne are both
-   "VER", plus 6 more collisions), corrupting ~25 rows in 2025's
-   FastF1-sourced data before the resolver was rekeyed on full name.
-   Development folds (2017–2023, 100% Kaggle-sourced) were confirmed
-   unaffected by construction.
-3. **Circuit-id cross-source resolution failure** (Entry 28, found while
-   auditing Entry 11's exact-zero permutation importances). The FastF1
-   ingest's circuit `IdResolver` is keyed on `(name, location)` but called
-   with `(Location, Location)`, so it never matches an existing Kaggle
-   circuit row and mints a new synthetic circuit_id for every 2025 race —
-   confirmed directly: 24/24 2025 races have zero prior rows under their
-   assigned circuit_id. Every circuit-keyed feature is therefore 100% null
-   for all of 2025, which is exactly the slice Entry 11's permutation
-   importance was computed on. A separate dead-code bug compounds this for
-   weather features: `circuit_weather_history()` is defined but never
-   called from `build_race_features()`, so `hist_track_temp_avg`,
-   `hist_wind_speed_avg`, and `hist_rain_rate` are unconditionally null in
-   every fold, not just 2025.
-4. **Entry 20 retraction** (Entry 24). Stage 5's feature-selection pass
-   selected and reported on the same development-fold data — selection
-   bias. Retracted and redone with nested selection; nothing survived on
-   the honest read.
-5. **Entry 27 model-selection error** (Entry 29). The locked holdout was
-   run on `plackett_luce_calibrated_blend`, which had the worst dev-fold
-   Hit@1 of the five systems Entry 25 compared (0.4897, below both the
-   pole-sitter baseline at 0.5241 and the plain classifier at 0.5379),
-   while `xgb_rank_ndcg` led on Hit@1, Hit@3, MRR, NDCG@5, and log loss.
-   No selection criterion was recorded before the choice was made — it
-   should have been fixed, in writing, before Stage 8's calibration step
-   touched any model. The locked holdout was **not** rerun on
-   `xgb_rank_ndcg` to correct this: doing so would spend a second one-shot
-   evaluation on a model chosen with the benefit of hindsight, which
-   defeats the purpose of a locked holdout. Entry 27's 0.4792 Hit@1 is the
-   honest generalization estimate for the model that was actually
-   evaluated — not for the model development-fold evidence says should
-   have been chosen.
+**The Entry 27 selection error.** The locked holdout evaluated
+`plackett_luce_calibrated_blend`, which had the worst dev-fold Hit@1 of the
+five systems Entry 25 compared (0.4897, below both the pole-sitter baseline
+at 0.5241 and the plain classifier at 0.5379), while `xgb_rank_ndcg` led on
+Hit@1, Hit@3, MRR, NDCG@5, and log loss. No selection criterion was recorded
+before the choice was made — the holdout evaluated a model that
+development-fold evidence argued against. It was not rerun on
+`xgb_rank_ndcg` to correct this: doing so would spend the one 2024–2025
+evaluation this project gets on a model chosen with the benefit of
+hindsight, which destroys the property that makes a locked holdout worth
+reporting in the first place. Entry 27's 0.4792 stands as the honest
+generalization estimate for the model that was actually evaluated — not for
+the model the development-fold evidence says should have been chosen.
 
 ## Repository layout
 
@@ -229,18 +255,18 @@ holdout has been spent (see "Evaluation protocol" above).
 This project phase is closed. The locked-holdout result (Entry 27) does not
 decisively beat the pole-sitter baseline on Hit@1 (0.4792 vs an implied
 ~0.5834 for pole-sitter on the same 48 races, CI [0.35, 0.63] on the
-difference, inconclusive), and — per the methodology note above — it
-evaluated a model that development-fold evidence says was the wrong one to
-lock in. The result that held up consistently across every evaluation
-surface in this project is calibration: the model's probabilities are
-meaningfully better than the pole-sitter's degenerate 1.0/0.0 predictions
-(log loss improved, CI excluding zero, everywhere it was measured,
-including the locked holdout).
+difference, inconclusive), it evaluated a model that development-fold
+evidence argued against (Entry 29), and it carries a known data gap in one
+of its twelve features (`circuit_win_rate`, Entry 28). The result that held
+up consistently across every evaluation surface in this project is
+calibration: the model's probabilities are meaningfully better than the
+pole-sitter's degenerate 1.0/0.0 predictions (log loss improved, CI
+excluding zero, everywhere it was measured, including the locked holdout).
 
-Read plainly: this project does not produce a model that decisively beats
-"predict the pole-position starting order" on Hit@1. It produces honestly
-better-calibrated probabilities than a naive baseline, three confirmed
-data-pipeline bugs (Entries 7, 13, 28), one retracted feature-selection
-result (Entry 20/24), and one documented model-selection error (Entry 27/29)
-— a full account of where the process went wrong, alongside where it held
-up, rather than a single clean accuracy number.
+This project does not produce a model that decisively beats "predict the
+pole-position starting order" on Hit@1. It produces honestly
+better-calibrated probabilities than a naive baseline, five confirmed
+pipeline defects (Entries 7, 13, 28), one retracted feature-selection result
+(Entry 20/24), and one documented model-selection error (Entry 27/29) — a
+full account of where the process went wrong, alongside where it held up,
+rather than a single clean accuracy number.
