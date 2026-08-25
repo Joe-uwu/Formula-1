@@ -30,6 +30,7 @@
 | Entry 25 — Stage 6: conditional logit / Plackett-Luce vs. classifier and ranker (145 dev-fold races) | Spearman: classifier=0.6887, conditional_logit=0.7592, plackett_luce=0.7939. | see per-metric CIs above — mixed by design, reported as such |
 | Entry 26 — Stage 8: calibration (temperature + grid-only blend) | Temperatures: plackett_luce=0.80, conditional_logit=1.37. Blend weights: plackett_luce=0.76, conditional_logit=0.91. | n/a (calibration entry) |
 | Entry 27 — LOCKED HOLDOUT (final, 48 races, 2024-2025) | LOCKED: Hit@1=0.4792 on 48 never-before-evaluated races | inconclusive |
+| Entry 28 — Null/distinct audit of Entry 11/12/24's exact-zero features | 3/10 permanently null (dead code, never wired in); 4/10 real everywhere except 100%-null on the 2025 FastF1 races (circuit-id resolver bug) — explains Entry 11's zeros; 3/10 real and populated throughout — Entry 24's zeros for these are an ablation-script wiring bug, not a null result. Full breakdown and root causes above. | n/a (methodology-correction entry) |
 <!-- SUMMARY_END -->
 
 ## Log
@@ -1041,3 +1042,82 @@ model=plackett_luce_calibrated_blend, holdout years=[2024, 2025], split={'start_
 **Verdict:** inconclusive
 
 **Next:** None — this is the final entry for this project phase.
+
+### Entry 28 — Null/distinct audit of Entry 11/12/24's exact-zero features
+
+**Date:** 2026-08-25  **Commit:** see `git log --oneline -- REPORT.md` (a commit can't embed its own hash; this entry has its own dedicated commit, not 6a5beae)
+
+**What changed / hypothesis:** Ran null-count / distinct-value-count checks directly against the underlying feature queries (bypassing FEATURE_COLUMNS, since two of the three mechanisms found here are wiring bugs, not literal all-null source data) for the ten columns Entries 11, 12, and 24 reported as exactly +0.0000 importance/delta with a zero-width CI or std. Checked dev folds (2017-2023), the full feature-table date range (2015-2025), and — since Entry 11's permutation importance ran on the 2025 holdout specifically, not dev folds — that 2025 slice in isolation. Also checked whether every 2025 race's circuit_id links back to that track's pre-2025 (Kaggle) race history. Bootstrap resampling cannot produce a zero-width interval on real data, so a reported +0.0000/[0,0] almost certainly means the underlying column was constant or absent over the rows actually measured — either because the data pipeline never populated it, or because a bug kept it out of the model being scored.
+
+**Config diff from previous run:**
+```
+No split/model change. Read-only queries against f1/features/queries.py functions and the races/weather tables.
+```
+
+**Metrics:**
+
+**Dev folds, 2017-2023 pooled (145 races):**
+
+| Feature | n | nulls | % null | distinct values |
+|---|---|---|---|---|
+| hist_track_temp_avg | 44 | 24 | 54.5% | 20 |
+| hist_wind_speed_avg | 44 | 24 | 54.5% | 20 |
+| hist_rain_rate | 44 | 24 | 54.5% | 2 |
+| circuit_avg_finish | 2900 | 688 | 23.7% | 378 |
+| circuit_pass_rate_last5 | 2900 | 688 | 23.7% | 144 |
+| circuit_win_rate | 2900 | 607 | 20.9% | 57 |
+| quali_gap_to_pole_norm | 2895 | 34 | 1.2% | 2711 |
+| grid_minus_quali_delta | 2900 | 5 | 0.2% | 34 |
+| constructor_dnf_rate_last10 | 1450 | 3 | 0.2% | 24 |
+| circuit_overtaking_difficulty | 145 | 6 | 4.1% | 139 |
+
+**Full feature-table range, 2015-2025 pooled (233 races):**
+
+| Feature | n | nulls | % null | distinct values |
+|---|---|---|---|---|
+| hist_track_temp_avg | 68 | 25 | 36.8% | 43 |
+| hist_wind_speed_avg | 68 | 25 | 36.8% | 43 |
+| hist_rain_rate | 68 | 25 | 36.8% | 3 |
+| circuit_avg_finish | 4698 | 1431 | 30.5% | 451 |
+| circuit_pass_rate_last5 | 4698 | 1431 | 30.5% | 154 |
+| circuit_win_rate | 4698 | 1309 | 27.9% | 64 |
+| quali_gap_to_pole_norm | 4685 | 72 | 1.5% | 4371 |
+| grid_minus_quali_delta | 4698 | 16 | 0.3% | 36 |
+| constructor_dnf_rate_last10 | 2350 | 10 | 0.4% | 28 |
+| circuit_overtaking_difficulty | 233 | 31 | 13.3% | 202 |
+
+**2025 holdout slice only (24 races) — the exact slice Entry 11's permutation importance was computed on:**
+
+| Feature | n | nulls | % null | distinct values |
+|---|---|---|---|---|
+| hist_track_temp_avg | 0 | 0 | 0.0% | 0 |
+| hist_wind_speed_avg | 0 | 0 | 0.0% | 0 |
+| hist_rain_rate | 0 | 0 | 0.0% | 0 |
+| circuit_avg_finish | 479 | 479 | 100.0% | 0 |
+| circuit_pass_rate_last5 | 479 | 479 | 100.0% | 0 |
+| circuit_win_rate | 479 | 479 | 100.0% | 0 |
+| quali_gap_to_pole_norm | 480 | 28 | 5.8% | 427 |
+| grid_minus_quali_delta | 479 | 2 | 0.4% | 11 |
+| constructor_dnf_rate_last10 | 240 | 4 | 1.7% | 7 |
+| circuit_overtaking_difficulty | 24 | 24 | 100.0% | 0 |
+
+**Circuit-id cross-source check:** all 24 FastF1-sourced (2025) races checked; 24/24 have ZERO prior rows under their assigned `circuit_id`, i.e. every 2025 race was assigned a brand-new synthetic circuit_id with no link to that track's Kaggle history, rather than being matched to the existing circuit.
+
+**Root cause, by group:**
+
+1. **Dead code (3/10): hist_track_temp_avg, hist_wind_speed_avg, hist_rain_rate.** `circuit_weather_history()` is defined in f1/features/queries.py but `build_race_features()` in f1/features/materialize.py never calls it — these columns are unconditionally backfilled to `None` for every row, in every fold, always. Confirms the +0.0000/std-0.0000 readings in both Entry 11 and Entry 12: not uninformative, never fed real data at all. This is a fourth data-pipeline bug in the same family as Entries 7 and 13 (a silent wiring defect, not a crash).
+
+2. **Circuit-id cross-source resolution bug (4/10): circuit_avg_finish, circuit_pass_rate_last5, circuit_win_rate, circuit_overtaking_difficulty.** These have real, non-constant values in dev folds and the full table (see tables above). But f1/ingest/fastf1_results_ingest.py's circuit IdResolver is constructed with key `(r.name, r.location)` and then called with `(event['Location'], event['Location'])` — never matching an existing Kaggle circuit row (whose `name` and `location` differ), so every FastF1-sourced (2025) race mints a brand-new circuit_id with zero prior history, confirmed directly above (24/24). Every circuit-keyed feature is therefore 100% null for all 24 2025 races specifically — which is exactly the slice Entry 11's permutation importance was computed on (held out on 2025). This is a fifth data-pipeline bug in the same family as Entry 13: cross-source identity resolution failure, same mechanism (a natural-key mismatch between Kaggle and FastF1), different table. Entry 12's ablation ran on dev folds (2017-2023, 100% Kaggle-sourced) instead, which is why these four show real deltas there, not exact zeros.
+
+3. **Ablation-script wiring bug (3/10): quali_gap_to_pole_norm, grid_minus_quali_delta, constructor_dnf_rate_last10.** Real, populated data throughout — no data bug. scripts/fix3_nested_reverse_ablation.py's `score()` sets `drop_cols = [c for c in FEATURE_COLUMNS if c not in keep_cols]` and NaNs those out, intending that whatever remains reaches the model. But `WinModel.fit`/`predict_race` (f1/models/train.py) hardcode `df[FEATURE_COLUMNS]` — the module-level constant imported from materialize.py — ignoring `keep_cols` entirely. All four of Entry 24's exact-zero candidates (this group of three plus circuit_overtaking_difficulty, group 2 above) were already absent from FEATURE_COLUMNS before Fix 3 ran, so adding them to `keep_cols` was a no-op: the "with feature" and "without feature" models were bit-identical, hence an exactly-zero, zero-width bootstrap CI on the log-loss delta — a measurement artifact of the ablation harness, not a null result.
+
+**Corrected readings:**
+
+- **Entry 24** ("Selected 0/9 ... none"): four of those nine — quali_gap_to_pole_norm, grid_minus_quali_delta, constructor_dnf_rate_last10, circuit_overtaking_difficulty — were never actually tested; the ablation harness silently never gave them to the model (bug 3 above). The other five (quali_gap_to_median_norm, teammate_quali_delta, teammate_quali_delta_avg5, circuit_overtaking_x_grid, constructor_season_pace_gap) were tested properly and legitimately failed to clear the CI-excludes-zero bar — that part of Entry 24's conclusion stands.
+- **Entry 23** (re-reading Entry 11's permutation importances against the noise floor): the "within noise floor — indistinguishable from noise" verdict for circuit_win_rate, hist_wind_speed_avg, hist_track_temp_avg, circuit_avg_finish, circuit_pass_rate_last5, and hist_rain_rate needs the same caveat — those six were measured on data that was structurally null (bugs 1 and 2 above), not noisy-but-real. "Indistinguishable from noise" is the wrong description; "never measured" is the right one. Entry 23's readings for the other features (driver_races_before, avg_finish_last5, wins_last5, driver_points_cum, wins_last3, constructor_avg_finish_last3, avg_finish_last3, constructor_points_cum) are unaffected — those columns are unrelated to circuit_id or weather and were fed real data.
+
+**Headline:** 3/10 permanently null (dead code, never wired in); 4/10 real everywhere except 100%-null on the 2025 FastF1 races (circuit-id resolver bug) — explains Entry 11's zeros; 3/10 real and populated throughout — Entry 24's zeros for these are an ablation-script wiring bug, not a null result. Full breakdown and root causes above.
+
+**Verdict:** n/a (methodology-correction entry)
+
+**Next:** None — this phase is closing. If a future phase revisits Stage 5, fix f1/ingest/fastf1_results_ingest.py's circuit IdResolver key (should key get_or_create the same way the cache is keyed: (name, location), not (Location, Location)) and wire circuit_weather_history() into build_race_features(), before trusting any circuit- or weather-based feature's importance again. Do not rerun the locked holdout (Entry 27) — circuit_win_rate is in the final model's feature set and is null for all 24 2025 holdout races under this bug, but Entry 27 is a spent one-shot evaluation and this note is a record, not a rerun trigger.
