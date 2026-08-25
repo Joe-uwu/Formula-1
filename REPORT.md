@@ -23,7 +23,7 @@
 | Entry 18 — Stage 5, Batch 5: circuit overtaking difficulty + interaction with grid position | log_loss: 0.1091 -> 0.1077, hit_at_1: 0.5517 -> 0.5517 | inconclusive |
 | Entry 19 — Stage 5, Batch 6: season-relative constructor pace (rolling qualifying gap-to-pole, current season) | log_loss: 0.1077 -> 0.1076, hit_at_1: 0.5517 -> 0.5517 | inconclusive |
 | Entry 20 — Stage 5 close-out: reverse ablation, final feature set | Kept 5/9 Stage 5 features. Final feature count: 17. | n/a (feature-selection entry) |
-| Entry 21 — Fix 1: uniform/grid-logistic baselines on all 9 pooled folds (0 races) | xgb_v1 does NOT beat grid_logistic on log loss (nan vs 0.1307) on the full 9-fold pooled set. | n/a (baseline-correction entry, not a model change) |
+| Entry 21 — Fix 1: uniform/grid-logistic baselines on all 9 pooled folds (0 races) | [SUPERSEDED — see Entry 22] xgb_v1 does NOT beat grid_logistic on log loss (nan vs 0.1307) on the full 9-fold pooled set. | n/a (VOID — superseded by Entry 22; baseline-correction entry, not a model change) |
 | Entry 22 — Fix 1: uniform/grid-logistic baselines on all 9 pooled folds (193 races) | xgb_v1 beats grid_logistic on log loss (0.1064 vs 0.1307) on the full 9-fold pooled set. | n/a (baseline-correction entry, not a model change) |
 | Entry 23 — Fix 2: null-feature noise floor (20 trials), Entry 11/12 correction | Noise floor ~0.0052. 4/18 of Entry 11's features are distinguishable from noise at this threshold. | n/a (methodology-correction entry) |
 | Entry 24 — Fix 3: nested reverse ablation, retracts Entry 20's 0.5793 | Selected 0/9 on selection folds (CI excludes zero): none. On held-out validation folds: Δhit@1=+0.0000 [+0.0000,+0.0000]. | inconclusive |
@@ -797,6 +797,8 @@ Batch-0 baseline (12 features): log_loss=0.1072, hit_at_1=0.5379
 
 ### Entry 21 — Fix 1: uniform/grid-logistic baselines on all 9 pooled folds (0 races)
 
+**⚠ SUPERSEDED — this entry is VOID. See Entry 22 for the corrected rerun and the real numbers.** The NaN readings below were an artifact of stale predictions: Entry 13's driver-identity cleanup wiped the predictions table, and Stage 2/3's pooled predictions were never regenerated before this comparison ran. Do not cite this entry's headline ("xgb_v1 does NOT beat grid_logistic on log loss") — it is not a measured result.
+
 **Date:** 2026-08-24  **Commit:** 6a5beae
 
 **What changed / hypothesis:** Reran the Entry 8 uniform and grid-only-logistic baselines on the same 9-fold pooled rolling-origin surface (2017-2025, 0 races) that Entries 9-11 already used for the model comparison — Entry 8's numbers were only the 24-race 2025 holdout, not comparable to the pooled model numbers. Correcting an apples-to-oranges comparison, not testing a new hypothesis.
@@ -816,9 +818,9 @@ fold_test_years=[2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025] (was: 202
 | uniform | 0.1986 | 0.0475 | 0.0000 | nan |
 | grid_logistic | 0.1307 | 0.0365 | 0.0086 | nan |
 
-**Headline:** xgb_v1 does NOT beat grid_logistic on log loss (nan vs 0.1307) on the full 9-fold pooled set.
+**Headline:** [SUPERSEDED — see Entry 22] xgb_v1 does NOT beat grid_logistic on log loss (nan vs 0.1307) on the full 9-fold pooled set.
 
-**Verdict:** n/a (baseline-correction entry, not a model change)
+**Verdict:** n/a (VOID — superseded by Entry 22; baseline-correction entry, not a model change)
 
 **Next:** Fix 2: null-feature check needs 20 repeats reported as a distribution, not a single point estimate.
 
