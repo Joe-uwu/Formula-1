@@ -1,0 +1,11 @@
+sqlalchemy
+alembic
+psycopg2-binary
+kagglehub
+fastf1
+pandas
+numpy
+scikit-learn
+joblib
+xgboost
+scipy
