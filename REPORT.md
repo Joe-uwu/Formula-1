@@ -13,7 +13,7 @@
 | Entry 8 — Stage 1: honest probabilistic baselines | xgb_v1 beats grid_logistic on log loss (0.0898 vs 0.1006). The feature set beyond starting position is contributing something measurable here. | n/a (baseline-comparison entry, not a model change) |
 | Entry 9 — Stage 2: rolling-origin evaluation (193 races pooled) | Pooled Hit@1=0.528 over 193 races | inconclusive |
 | Entry 10 — Stage 3: rank:pairwise / rank:ndcg vs. binary classifier (193 races pooled) | Spearman: classifier=0.6507, xgb_rank_pairwise=0.7715, pole_sitter=0.7539. Regression disappears with a ranking objective. | improved (Spearman-specific; see full table for other metrics) |
-| Entry 11 — Diagnostics | Hit@1 drop when grid/quali removed: +0.1140 -> non-grid features carry little to none independent signal. | n/a (diagnostic entry, not a model comparison) |
+| Entry 11 — Diagnostics | Hit@1 drop when grid/quali removed: +0.1140 -> non-grid features carry little to none independent signal. [NARROWED — see Entry 28: 6 of the 18 ranked features were structurally null on the slice measured, not actually tested.] | n/a (diagnostic entry, not a model comparison; conclusion narrowed by Entry 28) |
 | Entry 12 — Precondition diagnostics before Stage 4 | Dead features (reverse ablation, dev folds only): driver_races_before, circuit_avg_finish, circuit_pass_rate_last5, hist_track_temp_avg, hist_wind_speed_avg, hist_rain_rate | n/a (precondition/diagnostic entry) |
 | Entry 13 — bugfix: driver code is not a unique natural key | Fixed a driver-identity bug affecting 2025 (FastF1-sourced) data for ~7 collision-prone driver codes. Development folds (2017-2023, 100% Kaggle-sourced) were never affected — confirmed by construction, not just by luck. | n/a (bugfix entry) |
 | Entry 14 — Stage 5, Batch 1: qualifying pace gap (gap to pole, gap to median, both z-scored within session) | log_loss: 0.1072 -> 0.1123, hit_at_1: 0.5379 -> 0.5172 | inconclusive |
@@ -25,8 +25,8 @@
 | Entry 20 — Stage 5 close-out: reverse ablation, final feature set | Kept 5/9 Stage 5 features. Final feature count: 17. | n/a (feature-selection entry) |
 | Entry 21 — Fix 1: uniform/grid-logistic baselines on all 9 pooled folds (0 races) | [SUPERSEDED — see Entry 22] xgb_v1 does NOT beat grid_logistic on log loss (nan vs 0.1307) on the full 9-fold pooled set. | n/a (VOID — superseded by Entry 22; baseline-correction entry, not a model change) |
 | Entry 22 — Fix 1: uniform/grid-logistic baselines on all 9 pooled folds (193 races) | xgb_v1 beats grid_logistic on log loss (0.1064 vs 0.1307) on the full 9-fold pooled set. | n/a (baseline-correction entry, not a model change) |
-| Entry 23 — Fix 2: null-feature noise floor (20 trials), Entry 11/12 correction | Noise floor ~0.0052. 4/18 of Entry 11's features are distinguishable from noise at this threshold. | n/a (methodology-correction entry) |
-| Entry 24 — Fix 3: nested reverse ablation, retracts Entry 20's 0.5793 | Selected 0/9 on selection folds (CI excludes zero): none. On held-out validation folds: Δhit@1=+0.0000 [+0.0000,+0.0000]. | inconclusive |
+| Entry 23 — Fix 2: null-feature noise floor (20 trials), Entry 11/12 correction | Noise floor ~0.0052. 4/18 of Entry 11's features are distinguishable from noise at this threshold. [NARROWED — see Entry 28: 6 of the remaining 14 "within noise floor" verdicts were on structurally-null columns, never actually measured.] | n/a (methodology-correction entry; further narrowed by Entry 28) |
+| Entry 24 — Fix 3: nested reverse ablation, retracts Entry 20's 0.5793 | 5/9 candidates tested properly and failed to clear the CI-excludes-zero bar; the other 4/9 never reached the model due to an ablation-harness bug and were not actually tested [NARROWED — see Entry 28]. On held-out validation folds: Δhit@1=+0.0000 [+0.0000,+0.0000]. | inconclusive (narrowed by Entry 28 — see note at top) |
 | Entry 25 — Stage 6: conditional logit / Plackett-Luce vs. classifier and ranker (145 dev-fold races) | Spearman: classifier=0.6887, conditional_logit=0.7592, plackett_luce=0.7939. | see per-metric CIs above — mixed by design, reported as such |
 | Entry 26 — Stage 8: calibration (temperature + grid-only blend) | Temperatures: plackett_luce=0.80, conditional_logit=1.37. Blend weights: plackett_luce=0.76, conditional_logit=0.91. | n/a (calibration entry) |
 | Entry 27 — LOCKED HOLDOUT (final, 48 races, 2024-2025) | LOCKED: Hit@1=0.4792 on 48 never-before-evaluated races | inconclusive |
@@ -448,6 +448,8 @@ objective: binary:logistic -> rank:pairwise / rank:ndcg; everything else unchang
 
 ### Entry 11 — Diagnostics
 
+**⚠ NARROWED — see Entry 28.** Six of the eighteen features ranked in table 2 below (circuit_win_rate, circuit_avg_finish, circuit_pass_rate_last5, hist_track_temp_avg, hist_wind_speed_avg, hist_rain_rate) show exact +0.00000 importance with zero std because they were structurally null on the 2025 holdout slice this diagnostic was computed over — three from a circuit-id cross-source resolution bug in the FastF1 ingest, three from a weather query that's defined but never called (see Entry 28, which also flags a fourth circuit column with the same defect, circuit_overtaking_difficulty, added later in Stage 5 and not yet a candidate when this entry ran). The headline conclusion ("non-grid features carry little to none independent signal") holds only for the features that were actually fed real data; it is not evidence about these six.
+
 **Date:** 2026-08-24  **Commit:** 6a5beae
 
 **What changed / hypothesis:** Four diagnostics on the Stage 2/3 rolling-origin models: predicted-probability-vs-grid correlation, permutation importance, a grid/quali ablation, and the pooled upset breakdown. These explain *why* the models perform as they do, regardless of which one wins on the headline metrics.
@@ -508,9 +510,9 @@ No split/model change — read-only analysis over Entry 9/10's already-logged ro
 - xgb_rank_ndcg: pole won (n=104) Hit@1=0.817 | pole lost (n=89) Hit@1=0.202
 - pole_sitter: pole won (n=104) Hit@1=1.000 | pole lost (n=89) Hit@1=0.000
 
-**Headline:** Hit@1 drop when grid/quali removed: +0.1140 -> non-grid features carry little to none independent signal.
+**Headline:** Hit@1 drop when grid/quali removed: +0.1140 -> non-grid features carry little to none independent signal. [NARROWED — see Entry 28: 6 of the 18 ranked features were structurally null on the slice measured, not actually tested.]
 
-**Verdict:** n/a (diagnostic entry, not a model comparison)
+**Verdict:** n/a (diagnostic entry, not a model comparison; conclusion narrowed by Entry 28)
 
 **Next:** If independent signal is weak, the honest path forward is either richer non-grid features (pit strategy, tyre degradation, weather forecast at prediction time) or accepting grid-order-plus-noise as the ceiling for this feature set.
 
@@ -855,6 +857,8 @@ fold_test_years=[2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025] (was: 202
 
 ### Entry 23 — Fix 2: null-feature noise floor (20 trials), Entry 11/12 correction
 
+**⚠ NARROWED — see Entry 28.** Six of this entry's "within noise floor — indistinguishable from noise" verdicts below (circuit_win_rate, hist_wind_speed_avg, hist_track_temp_avg, circuit_avg_finish, circuit_pass_rate_last5, hist_rain_rate) were computed on columns that were structurally null on the slice Entry 11 measured — a circuit-id cross-source resolution bug for the three circuit features, dead code for the three weather features (see Entry 28). Those six were never fed real data, so "indistinguishable from noise" is the wrong description for them; "never measured" is correct. The other eight within-floor verdicts and the four above-floor verdicts are unaffected.
+
 **Date:** 2026-08-24  **Commit:** 6a5beae
 
 **What changed / hypothesis:** Reran the null-feature check 20 times (independent seeds) instead of once, reporting the resulting distribution as an explicit noise floor rather than a single point estimate compared to an arbitrary threshold. Entry 12's 'SUSPECT' verdict on a single -0.00186 trial was a labeling bug, not a real finding — a single sample can't establish a noise floor. Re-reading Entry 11's importances against a proper empirical floor tells us which ones are real.
@@ -896,13 +900,15 @@ mean=-0.00026, std=0.00225, 95% range=[-0.00459, +0.00354], max |value| observed
 | wins_last3 | -0.00151 | within noise floor — indistinguishable from noise |
 | constructor_avg_finish_last3 | -0.00364 | within noise floor — indistinguishable from noise |
 
-**Headline:** Noise floor ~0.0052. 4/18 of Entry 11's features are distinguishable from noise at this threshold.
+**Headline:** Noise floor ~0.0052. 4/18 of Entry 11's features are distinguishable from noise at this threshold. [NARROWED — see Entry 28: 6 of the remaining 14 "within noise floor" verdicts were on structurally-null columns, never actually measured.]
 
-**Verdict:** n/a (methodology-correction entry)
+**Verdict:** n/a (methodology-correction entry; further narrowed by Entry 28)
 
 **Next:** Fix 3: redo Entry 20's reverse ablation with paired-difference CIs and nested selection so the reported final score isn't computed on the same folds used to select the features.
 
 ### Entry 24 — Fix 3: nested reverse ablation, retracts Entry 20's 0.5793
+
+**⚠ NARROWED — see Entry 28.** Four of this entry's nine "no" selections below (quali_gap_to_pole_norm, grid_minus_quali_delta, constructor_dnf_rate_last10, circuit_overtaking_difficulty) never actually reached the model: `fix3_nested_reverse_ablation.py`'s `score()` NaNs out `drop_cols` but `WinModel` hardcodes `df[FEATURE_COLUMNS]`, ignoring `keep_cols` — these four were already absent from `FEATURE_COLUMNS` before this script ran, so adding them to `keep_cols` was silently a no-op, producing a mechanically-guaranteed zero-width CI rather than a real null result (see Entry 28). The other five (quali_gap_to_median_norm, teammate_quali_delta, teammate_quali_delta_avg5, circuit_overtaking_x_grid, constructor_season_pace_gap) were tested properly and legitimately failed to clear the CI-excludes-zero bar. "Selected 0/9" should read "5/9 tested and rejected, 4/9 never tested." The validation-phase result below (batch-0 alone vs. batch-0 alone, since nothing survived selection either way) is unaffected by this bug.
 
 **Date:** 2026-08-24  **Commit:** 6a5beae
 
@@ -939,9 +945,9 @@ final set (batch-0 only, nothing survived selection): hit_at_1=0.6591, log_loss=
 
 Δ log_loss = +0.0000 [+0.0000, +0.0000] (inconclusive)
 
-**Headline:** Selected 0/9 on selection folds (CI excludes zero): none. On held-out validation folds: Δhit@1=+0.0000 [+0.0000,+0.0000].
+**Headline:** 5/9 candidates tested properly and failed to clear the CI-excludes-zero bar; the other 4/9 never reached the model due to an ablation-harness bug and were not actually tested [NARROWED — see Entry 28]. On held-out validation folds: Δhit@1=+0.0000 [+0.0000,+0.0000].
 
-**Verdict:** inconclusive
+**Verdict:** inconclusive (narrowed by Entry 28 — see note at top)
 
 **Next:** Stage 6 (skip Stage 7 per instruction): PyTorch conditional logit / Plackett-Luce.
 
