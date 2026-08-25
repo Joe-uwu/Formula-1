@@ -1044,6 +1044,8 @@ model=plackett_luce_calibrated_blend, holdout years=[2024, 2025], split={'start_
 | log_loss | 0.1167 | [0.1056, 0.1277] | -1.3255 | [-1.8256, -0.8274] | improved |
 | brier_score | 0.0349 | [0.0315, 0.0384] | -0.0068 | [-0.0199, +0.0054] | inconclusive |
 
+**Note (added after Entry 28):** circuit_win_rate is in this model's final feature set and was 100% null across all 24 of the 2025 holdout races under the circuit-id cross-source resolution bug identified in Entry 28, unpatched here since this run used the same pipeline that produced every other feature and the training data — a known data gap in one of twelve features, not a reason to discard the 0.4792 one-shot read below, but a reason to read it with that gap in mind.
+
 **Headline:** LOCKED: Hit@1=0.4792 on 48 never-before-evaluated races
 
 **Verdict:** inconclusive
