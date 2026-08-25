@@ -1052,7 +1052,7 @@ model=plackett_luce_calibrated_blend, holdout years=[2024, 2025], split={'start_
 
 ### Entry 28 — Null/distinct audit of Entry 11/12/24's exact-zero features
 
-**Date:** 2026-08-25  **Commit:** see `git log --oneline -- REPORT.md` (a commit can't embed its own hash; this entry has its own dedicated commit, not 6a5beae)
+**Date:** 2026-08-25  **Commit:** 9d1f7e9 (parent commit this entry's own commit was built on — a commit cannot embed its own hash; this entry's own commit is a child of 9d1f7e9, not 6a5beae)
 
 **What changed / hypothesis:** Ran null-count / distinct-value-count checks directly against the underlying feature queries (bypassing FEATURE_COLUMNS, since two of the three mechanisms found here are wiring bugs, not literal all-null source data) for the ten columns Entries 11, 12, and 24 reported as exactly +0.0000 importance/delta with a zero-width CI or std. Checked dev folds (2017-2023), the full feature-table date range (2015-2025), and — since Entry 11's permutation importance ran on the 2025 holdout specifically, not dev folds — that 2025 slice in isolation. Also checked whether every 2025 race's circuit_id links back to that track's pre-2025 (Kaggle) race history. Bootstrap resampling cannot produce a zero-width interval on real data, so a reported +0.0000/[0,0] almost certainly means the underlying column was constant or absent over the rows actually measured — either because the data pipeline never populated it, or because a bug kept it out of the model being scored.
 
@@ -1131,7 +1131,7 @@ No split/model change. Read-only queries against f1/features/queries.py function
 
 ### Entry 29 — Model-selection error: Entry 27 locked the worst dev-fold Hit@1 performer
 
-**Date:** 2026-08-25  **Commit:** see `git log --oneline -- REPORT.md` (a commit can't embed its own hash; this entry has its own dedicated commit, not 6a5beae)
+**Date:** 2026-08-25  **Commit:** 85c688f (parent commit this entry's own commit was built on — a commit cannot embed its own hash; this entry's own commit is a child of 85c688f, not 6a5beae)
 
 **What changed / hypothesis:** Documentation entry, no new modeling and no rerun of the locked holdout. Reviews Entry 25's development-fold comparison against the model Entry 27 actually evaluated. Entry 26 records no selection criterion for choosing plackett_luce_calibrated_blend over the other four systems Entry 25 compared; checking Entry 25's own table against that choice.
 
