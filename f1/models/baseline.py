@@ -10,7 +10,9 @@ def pole_sitter_predictions(race_df: pd.DataFrame) -> pd.DataFrame:
     actual_position. Returns predicted_probability, predicted_rank per driver."""
     df = race_df.copy()
     rank_basis = df["quali_position"].fillna(df["grid_position"])
-    df["predicted_rank"] = rank_basis.rank(method="first").astype(int)
+    # A driver missing both (no grid slot, no quali time — e.g. withdrew before
+    # qualifying) ranks last rather than crashing the cast to int.
+    df["predicted_rank"] = rank_basis.rank(method="first", na_option="bottom").astype(int)
     df["predicted_probability"] = (df["predicted_rank"] == 1).astype(float)
     return df
 

@@ -1,11 +1,16 @@
-import React from 'react';
-import F1Dashboard from './Frontend/F1Dashboard';
+import { useCallback, useState } from "react";
+import Home from "./pages/Home";
+import LoadingScreen from "./components/LoadingScreen";
 
 function App() {
+  const [loading, setLoading] = useState(true);
+  const onLoaded = useCallback(() => setLoading(false), []);
+
   return (
-    <div className="App">
-      <F1Dashboard />
-    </div>
+    <>
+      <Home />
+      {loading && <LoadingScreen onDone={onLoaded} />}
+    </>
   );
 }
 

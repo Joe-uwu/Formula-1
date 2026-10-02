@@ -88,3 +88,6 @@ dmypy.json
 
 # Mac
 .DS_Store
+
+# src/lib is frontend source, not a Python lib/ dir
+!/src/lib/

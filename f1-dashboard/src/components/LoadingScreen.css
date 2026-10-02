@@ -1,0 +1,153 @@
+.loading-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 50% 30%, #0a0a0a 0%, #000000 70%),
+    repeating-linear-gradient(
+      100deg,
+      rgba(255, 255, 255, 0.015) 0px,
+      rgba(255, 255, 255, 0.015) 2px,
+      transparent 2px,
+      transparent 80px
+    );
+  transition: opacity 0.6s var(--ease-expo);
+}
+.loading-screen.is-finishing {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.loading-speedlines {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background-image: repeating-linear-gradient(
+    100deg,
+    rgba(255, 255, 255, 0.5) 0px,
+    rgba(255, 255, 255, 0.5) 1px,
+    transparent 1px,
+    transparent 220px
+  );
+  background-size: 2400px 100%;
+  pointer-events: none;
+  will-change: opacity, background-position;
+}
+
+.loading-track-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Scoped copies of the racetrack scene's primitives — kept local to
+   .loading-screen rather than reused from Hero.css, so this component has no
+   hidden dependency on Hero's own stylesheet staying exactly as it is. */
+.loading-screen .track-path-ghost {
+  stroke: rgba(255, 255, 255, 0.08);
+  stroke-width: 6;
+  stroke-linecap: round;
+}
+.loading-screen .track-path {
+  stroke: #e3e3e3;
+  stroke-width: 6;
+  stroke-linecap: round;
+  will-change: stroke-dashoffset;
+}
+.loading-screen .start-light {
+  fill: #2a2a2a;
+  stroke: #000;
+  stroke-width: 1.5;
+  will-change: fill, filter;
+}
+.loading-screen .car-marker {
+  opacity: 0;
+  will-change: transform, opacity;
+}
+.loading-screen .car-body {
+  fill: #d6d6d6;
+}
+.loading-screen .car-wing-rear,
+.loading-screen .car-wing-front {
+  fill: #9c9c9c;
+}
+.loading-screen .car-wheel {
+  fill: #0c0c0c;
+}
+.loading-screen .car-cockpit {
+  fill: #1a1a1a;
+}
+.loading-screen .finish-gate {
+  opacity: 0;
+  will-change: opacity;
+}
+
+.loading-telemetry {
+  position: absolute;
+  top: 28px;
+  right: 28px;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: right;
+}
+.loading-telemetry .telemetry-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.loading-telemetry .telemetry-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.5);
+}
+.loading-telemetry .telemetry-value {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+/* The percentage is the whole point of a loading screen — it's what tells a
+   visitor this is real progress, not a decorative loop — so it sits dead
+   center, large, above the scene. */
+.loading-percent {
+  position: relative;
+  z-index: 4;
+  display: flex;
+  align-items: flex-start;
+  font-family: var(--font-display);
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 40px rgba(0, 0, 0, 0.85);
+  pointer-events: none;
+}
+.loading-percent-value {
+  font-size: clamp(72px, 14vw, 180px);
+  line-height: 1;
+  min-width: 2.4ch;
+  text-align: right;
+}
+.loading-percent-sign {
+  font-size: clamp(28px, 4vw, 56px);
+  margin: 12px 0 0 4px;
+  color: var(--series-1);
+}
+
+@media (max-width: 640px) {
+  .loading-telemetry {
+    top: 20px;
+    right: 20px;
+  }
+}

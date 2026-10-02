@@ -1,0 +1,160 @@
+/* Roomier than the generic .page cap (960px) — the model now has its own
+   full page, so this one goes back to being purely the two stat columns,
+   just given more breathing room than the tight default. */
+.track-results-page.page {
+  max-width: 1160px;
+}
+
+.track-results-grid {
+  /* .track-results-page centers this vertically via flex (align-items) but
+     never asked it to fill the row horizontally, so it defaulted to
+     flex-start and hugged the left edge of its own already-centered
+     container, leaving unequal left/right margins. */
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 72px;
+  align-items: start;
+}
+
+@media (max-width: 860px) {
+  .track-results-grid {
+    grid-template-columns: 1fr;
+    gap: 48px;
+  }
+}
+
+.track-legend {
+  display: flex;
+  justify-content: flex-start;
+  gap: 20px;
+  margin: 0 0 20px;
+  font-size: 14px;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
+}
+.legend-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  display: inline-block;
+}
+.legend-swatch.model { background: var(--series-1); }
+.legend-swatch.pole { background: var(--series-2); }
+
+.metric-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+
+.metric-reveal {
+  display: grid;
+  grid-template-columns: 100px 1fr;
+  align-items: center;
+  gap: 24px;
+}
+
+.metric-illo {
+  width: 100%;
+  height: auto;
+  max-width: 100px;
+  justify-self: center;
+}
+
+.metric-title {
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.metric-bar-row {
+  display: grid;
+  grid-template-columns: 1fr 56px;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.metric-bar-row:last-child { margin-bottom: 0; }
+
+.metric-bar-row .bar-value {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+/* --- recent results: plain display rows (no click-through to a share card)
+   that wipe up out of a mask on scroll, echoing nickho-motorsports.nl's
+   calendar reveal, with a hover treatment drawn from the app's own palette
+   rather than an off-brand yellow --- */
+.race-results-caption {
+  margin: 0 0 20px;
+  color: var(--text-secondary);
+}
+
+.race-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.race-line-mask {
+  overflow: hidden;
+}
+
+.race-line {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  align-items: baseline;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--gridline);
+  transition: transform 0.3s var(--ease-expo);
+}
+.race-line:hover.race-line-a { transform: skewX(-4deg) translateX(4px); }
+.race-line:hover.race-line-b { transform: skewX(4deg) translateX(4px); }
+
+.race-line-icon {
+  grid-row: 1 / 3;
+  align-self: center;
+}
+.race-line-icon .race-row-icon {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+
+/* Name always shown; the pick sits dimmed and slightly tucked away until
+   hover brings it up to full brightness and the name picks up the model's
+   own accent colour — the calendar-page treatment this was modelled on,
+   recoloured to the app's own palette instead of a borrowed yellow. */
+.race-line-name {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 20px;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 0.3s var(--ease-expo);
+}
+.race-line:hover .race-line-name {
+  color: var(--series-1);
+}
+
+.race-line-pick {
+  grid-column: 2;
+  font-size: 13px;
+  color: var(--text-secondary);
+  opacity: 0.55;
+  transform: translateY(2px);
+  transition: opacity 0.3s var(--ease-expo), transform 0.3s var(--ease-expo);
+}
+.race-line:hover .race-line-pick {
+  opacity: 1;
+  transform: translateY(0);
+}

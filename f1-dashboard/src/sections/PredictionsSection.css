@@ -1,0 +1,124 @@
+.winner-callout {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 24px 0 28px;
+  text-align: center;
+}
+
+.winner-label {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.winner-name {
+  font-family: var(--font-display);
+  font-size: clamp(28px, 4vw, 44px);
+  font-weight: 900;
+  letter-spacing: -0.035em;
+}
+
+.winner-detail {
+  font-size: 15px;
+}
+
+.bar-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.bar-row-wrap {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.bar-row {
+  display: grid;
+  grid-template-columns: minmax(0, 260px) 1fr 56px;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+
+.bar-row-label {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.bar-rank {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+  width: 1.5em;
+  flex-shrink: 0;
+}
+
+.bar-name {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bar-team {
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bar-track {
+  height: 10px;
+  background: var(--gridline);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--seq-400);
+  border-radius: 4px;
+}
+
+.bar-value {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.feature-panel {
+  padding: 12px 16px;
+  background: var(--surface-1);
+  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  border-radius: 0 0 8px 8px;
+  margin-top: -2px;
+}
+
+.feature-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.feature-table td {
+  padding: 4px 0;
+  border-bottom: 1px solid var(--gridline);
+}
+.feature-table td:last-child {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}

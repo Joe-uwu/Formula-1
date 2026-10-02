@@ -36,6 +36,32 @@ class NoGridOrderError(Exception):
     """Qualifying hasn't happened (or produced no classification) for this race yet."""
 
 
+def next_unscored_race(year: int | None = None) -> tuple[int, int, str, "datetime.date"]:
+    """First race on the FastF1 calendar, in date order starting from `year`
+    (default: current UTC year), that doesn't yet have a completed result in
+    the DB — i.e. the next race the pipeline hasn't scored, which may be a
+    genuinely future race or a past one whose result just hasn't been
+    ingested yet. Rolls into `year + 1` once `year`'s calendar is exhausted.
+    Returns (year, round_no, event_name, event_date).
+    """
+    _enable_cache()
+    start_year = year or datetime.utcnow().year
+    with engine.connect() as conn:
+        for y in (start_year, start_year + 1):
+            schedule = fastf1.get_event_schedule(y, include_testing=False).sort_values("RoundNumber")
+            for _, ev in schedule.iterrows():
+                round_no = int(ev["RoundNumber"])
+                completed = conn.execute(
+                    select(Result.result_id)
+                    .join(Race, Race.race_id == Result.race_id)
+                    .where(Race.year == y, Race.round == round_no, Result.position.isnot(None))
+                    .limit(1)
+                ).first()
+                if completed is None:
+                    return y, round_no, str(ev["EventName"]), pd.Timestamp(ev["EventDate"]).date()
+    raise RuntimeError(f"No unscored race found on the FastF1 calendar for {start_year}-{start_year + 1}.")
+
+
 def _driver_constructor_rows(results: pd.DataFrame) -> list[dict]:
     """results: a FastF1 qualifying session.results DataFrame — its 'Position'
     column becomes both grid_position and quali_position."""

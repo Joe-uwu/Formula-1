@@ -1,0 +1,76 @@
+.car-viewer {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  cursor: grab;
+}
+.car-viewer:active {
+  cursor: grabbing;
+}
+
+/* A light bulb hanging top-centre, off (dim grey) until clicked. On: the
+   bulb itself glows the app's accent colour (the same "this is active"
+   language as everywhere else), while the light it actually casts is a
+   plain white studio beam — a narrow cone at the bulb widening as it falls,
+   scaled from the bulb downward so it visibly grows from the bulb to the
+   ground rather than blooming outward from a fixed halo. */
+.light-bulb {
+  position: absolute;
+  top: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  background: none;
+  border: none;
+  padding: 10px;
+  margin: -10px;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.4);
+  transition: color 0.5s var(--ease-expo), filter 0.5s var(--ease-expo);
+}
+.light-bulb-icon {
+  width: 30px;
+  height: 30px;
+  display: block;
+}
+.light-bulb.is-on {
+  color: var(--series-1);
+  filter: drop-shadow(0 0 12px var(--series-1));
+}
+
+/* A soft dome of light, not a hard-edged beam: a radial gradient (its own
+   feathered falloff through several stops) plus a blur filter for extra
+   softness at the edge, sized in vw so it washes across the full page width
+   — both stat columns either side of the car — rather than staying
+   confined to the car's own narrow grid cell. Positioned relative to the
+   car/bulb's own container, so it scrolls with the page and stays aligned
+   with the car beneath it instead of being pinned to the viewport. */
+.bulb-glow {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  width: 100vw;
+  height: 75vh; /* reaches 3/4 of the way down the model page */
+  margin-left: -50vw;
+  transform: scaleY(0);
+  transform-origin: 50% 0%;
+  /* Bigger (wider, taller ellipse) and each stop's alpha cut by 35% from the
+     previous pass (0.5/0.26/0.1 -> 0.33/0.17/0.07). */
+  background: radial-gradient(
+    ellipse 58% 88% at 50% 0%,
+    rgba(255, 255, 255, 0.33) 0%,
+    rgba(255, 255, 255, 0.17) 32%,
+    rgba(255, 255, 255, 0.07) 55%,
+    rgba(255, 255, 255, 0) 82%
+  );
+  filter: blur(48px);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 2;
+  mix-blend-mode: screen;
+  transition: opacity 1.2s var(--ease-expo), transform 1.2s var(--ease-expo);
+}
+.bulb-glow.is-on {
+  opacity: 1;
+  transform: scaleY(1);
+}

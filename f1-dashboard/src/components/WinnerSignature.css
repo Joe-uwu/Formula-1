@@ -1,0 +1,11 @@
+.winner-signature {
+  display: block;
+  overflow: visible;
+}
+
+.winner-signature-text {
+  font-family: "Pinyon Script", cursive;
+  font-size: 92px;
+  fill: var(--text-primary);
+  filter: drop-shadow(0 4px 18px rgba(0, 0, 0, 0.55));
+}

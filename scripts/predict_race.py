@@ -39,7 +39,7 @@ def main():
     except NoGridOrderError as e:
         print(f"Can't predict yet: {e}")
         sys.exit(1)
-    print(out.to_string(index=False))
+    print(out[["code", "full_name", "team", "predicted_rank", "predicted_probability"]].to_string(index=False))
 
 
 if __name__ == "__main__":

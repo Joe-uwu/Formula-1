@@ -9,3 +9,6 @@ scikit-learn
 joblib
 xgboost
 scipy
+fastapi
+uvicorn[standard]
+httpx

@@ -1,0 +1,1 @@
+{"n_races": 10, "model": {"model_version": "xgb_v1", "hit_at_1": 0.5, "hit_at_3": 0.9}, "pole_sitter": {"hit_at_1": 0.6, "hit_at_3": 0.9}}

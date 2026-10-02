@@ -48,7 +48,11 @@ def predict_race(year: int, round_no: int) -> pd.DataFrame:
         model_version=model.version, config_hash=LIVE_CONFIG_HASH, race_id=race_id,
     )
 
-    return result[["code", "full_name", "team", "predicted_rank", "predicted_probability"]]
+    # Full columns (driver_id, code/full_name/team, every FEATURE_COLUMNS
+    # value, predicted_rank/predicted_probability) so callers — the API's
+    # feature-breakdown endpoint included — can read a driver's inputs
+    # without recomputing the feature merge above.
+    return result
 
 
 def backfill_and_score(year: int, round_no: int) -> pd.DataFrame | None:

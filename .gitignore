@@ -3,3 +3,8 @@ __pycache__/
 *.pyc
 .pytest_cache/
 models/*.joblib
+
+# Firebase deploy cache, local tooling, raw 3D model download (site uses f1-dashboard/public/models/car.glb)
+.firebase/
+.claude/
+2026-aston-martin-amr26*

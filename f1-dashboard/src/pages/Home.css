@@ -1,0 +1,182 @@
+@keyframes reveal-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.reveal {
+  animation: reveal-in 0.5s var(--ease-expo) both;
+}
+
+/* Always mounted (Home renders it outside the Hero/reveal conditional), so
+   it's on screen at every scroll position — the hero's own corner label
+   only exists inside its own pinned/sticky region and disappears once the
+   reveal content scrolls past it. */
+.site-header {
+  position: fixed;
+  top: 28px;
+  left: 28px;
+  z-index: 40;
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: rgba(255, 255, 255, 0.85);
+  pointer-events: none;
+}
+
+.reveal-section {
+  padding-top: 64px;
+  padding-bottom: 64px;
+  border-top: 1px solid var(--gridline);
+}
+.reveal-section:first-of-type {
+  border-top: none;
+}
+
+.reveal-section h2 {
+  text-align: center;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: clamp(26px, 3.5vw, 38px);
+  letter-spacing: -0.035em;
+  margin: 0 0 32px;
+}
+
+.next-race-wrap {
+  position: relative;
+  overflow: hidden;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.next-race-hero {
+  position: relative;
+  height: 100vh;
+  min-height: 560px;
+  max-height: 900px;
+  overflow: hidden;
+}
+
+.next-race-split {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  padding: 0 48px;
+}
+
+.next-race-split h2.next-race-label {
+  margin: 0;
+  text-align: left;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: clamp(42px, 7.2vw, 100px);
+  line-height: 0.96;
+  letter-spacing: -0.03em;
+  color: var(--text-primary);
+  text-shadow: 0 4px 24px rgba(0, 0, 0, 0.6);
+}
+.next-race-label span {
+  display: block;
+}
+
+.next-race-panel {
+  justify-self: end;
+  text-align: right;
+  max-width: 46vw;
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.6);
+}
+
+/* The predicted winner's name, sized to 3/7 of the viewport width — the
+   dominant element in the right half rather than a caption-sized line. */
+.winner-signature-wrap {
+  width: 42.857vw;
+  max-width: 640px;
+  min-width: 220px;
+  margin: 6px 0 4px auto;
+}
+
+.next-race-name {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.next-race-pick {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: clamp(24px, 3.2vw, 38px);
+  letter-spacing: -0.03em;
+  color: var(--text-primary);
+}
+
+.next-race-message {
+  margin: 10px 0 0;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* The intro sentence gets a full screen to itself — its own page, not a
+   caption sitting on top of the grid below it. */
+.track-intro-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+.track-intro-block {
+  padding: 0 24px;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+.magic-text.track-intro-text {
+  font-size: clamp(32px, 5.2vw, 64px);
+  max-width: 20ch;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+/* Graphs + predictions: its own whole page, vertically centred so a shorter
+   viewport doesn't just pin the content to the top of a lot of empty space. */
+.track-results-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+}
+
+/* The model's own page, last — full height, and the one place the bulb and
+   its light live now. */
+.model-page {
+  position: relative;
+  height: 100vh;
+  min-height: 560px;
+  max-height: 900px;
+  overflow: hidden;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+@media (max-width: 720px) {
+  .next-race-split {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    text-align: center;
+    gap: 24px;
+  }
+  .next-race-panel {
+    justify-self: center;
+    text-align: center;
+  }
+}
