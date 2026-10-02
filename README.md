@@ -4,6 +4,10 @@ Predicts win probability for every driver in a race, using only information
 that would have been available before that race happened. Full experiment
 log with every metric, config, and verdict: [REPORT.md](REPORT.md).
 
+**Live dashboard: https://formula1-predictor.web.app** — the next race's
+predictions (once qualifying sets the grid), the model's recent track record
+against the pole-sitter baseline, and predicted-vs-actual history.
+
 ## Five pipeline defects
 
 1. **`constructor_form` doubled feature rows** (Entry 7). A 2-car
@@ -199,6 +203,11 @@ the model the development-fold evidence says should have been chosen.
   REPORT.md entry.
 - `alembic/` — schema migrations.
 - `tests/` — referential integrity, leakage, and metrics-correctness tests.
+- `api/` — FastAPI wrapper over `f1/live` and `f1/eval`; no model logic.
+- `f1-dashboard/` — React dashboard (3D car viewer, predictions, history,
+  share cards).
+- `scripts/snapshot_api.py` — renders the API responses the dashboard reads
+  to static JSON, so the deployed site needs no running backend.
 
 ## Running it
 
@@ -216,6 +225,18 @@ appends its own REPORT.md entry. `scripts/predict_race.py --year Y --round R`
 predicts a specific race live (requires qualifying to have happened). Do not
 run `scripts/final_holdout.py --final` again for this project phase — the
 holdout has been spent (see "Evaluation protocol" above).
+
+**Dashboard, locally:** `uvicorn api.main:app --port 8000`, then
+`npm start` in `f1-dashboard/`.
+
+**Deploying** (Firebase Hosting, free tier). The site is a static snapshot,
+so refresh it after each qualifying or race, with the DB up:
+
+```
+python scripts/snapshot_api.py
+npm --prefix f1-dashboard run build
+firebase deploy --only hosting
+```
 
 ## Status
 
