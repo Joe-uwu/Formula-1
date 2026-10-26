@@ -90,6 +90,14 @@ export default function Home() {
           </section>
         </div>
       )}
+
+      <footer className="site-footer">
+        <span>Created by Joseph Suresh</span>
+        <nav className="site-footer-links">
+          <a href="mailto:josephprasanna987@gmail.com">josephprasanna987@gmail.com</a>
+          <a href="https://www.linkedin.com/in/joseph-prasanna-1aba592a3" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+        </nav>
+      </footer>
     </>
   );
 }
