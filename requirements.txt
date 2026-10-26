@@ -1,14 +1,16 @@
-sqlalchemy
-alembic
-psycopg2-binary
-kagglehub
-fastf1
-pandas
-numpy
-scikit-learn
-joblib
-xgboost
-scipy
-fastapi
-uvicorn[standard]
-httpx
+# Pinned: models/*.joblib is a pickled xgboost/sklearn model and only loads
+# reliably under the versions it was saved with (the CI refresh depends on it).
+sqlalchemy==2.0.52
+alembic==1.19.1
+psycopg2-binary==2.9.12
+kagglehub==1.0.2
+fastf1==3.8.3
+pandas==2.3.3
+numpy==2.5.2
+scikit-learn==1.9.0
+joblib==1.5.3
+xgboost==3.4.1
+scipy==1.18.1
+fastapi==0.141.1
+uvicorn[standard]==0.54.0
+httpx==0.28.1

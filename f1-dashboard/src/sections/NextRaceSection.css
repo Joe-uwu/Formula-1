@@ -1,0 +1,207 @@
+@keyframes nr-rise {
+  from { transform: translateY(105%); }
+  to { transform: translateY(0); }
+}
+@keyframes nr-fade {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes nr-grow {
+  from { width: 0; }
+  to { width: var(--w); }
+}
+
+.nr {
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 48px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  gap: 72px;
+  align-items: center;
+}
+
+.nr-eyebrow {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  animation: nr-fade 0.6s var(--ease-expo) both;
+}
+
+.nr-label {
+  margin-top: 28px;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--series-1);
+  animation: nr-fade 0.6s var(--ease-expo) 0.1s both;
+}
+
+.nr-main {
+  container-type: inline-size;
+  min-width: 0;
+}
+
+.nr .nr-name {
+  margin: 10px 0 0;
+  text-align: left;
+  font-family: var(--font-display);
+  font-weight: 900;
+  text-transform: uppercase;
+  line-height: 0.9;
+  letter-spacing: -0.04em;
+}
+.nr-line {
+  display: block;
+  overflow: hidden;
+  padding-bottom: 0.04em;
+}
+.nr-line > span {
+  display: block;
+  animation: nr-rise 0.9s var(--ease-expo) both;
+}
+.nr-first {
+  font-size: clamp(28px, 4vw, 56px);
+  color: var(--text-secondary);
+  animation-delay: 0.15s !important;
+}
+.nr-last {
+  /* Fill the column: ~0.78em per uppercase Archivo Black glyph. */
+  font-size: min(148px, calc(100cqi / (var(--len, 8) * 0.78)));
+  color: var(--text-primary);
+  animation-delay: 0.25s !important;
+}
+
+.nr-meta {
+  margin: 24px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 14px;
+  font-size: 17px;
+  color: var(--text-secondary);
+  animation: nr-fade 0.6s var(--ease-expo) 0.45s both;
+}
+.nr-prob {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 28px;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.nr-meta-muted { color: var(--text-muted); }
+
+.nr-bar {
+  display: block;
+  margin-top: 18px;
+  height: 6px;
+  max-width: 520px;
+  background: var(--gridline);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.nr-bar > span {
+  display: block;
+  height: 100%;
+  width: var(--w);
+  background: var(--series-1);
+  border-radius: 3px;
+  animation: nr-grow 1.1s var(--ease-expo) 0.5s both;
+}
+
+/* --- the chasing pack --- */
+
+.nr-pack {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--gridline);
+}
+.nr-row {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  grid-template-areas: "rank who prob" "rank bar bar";
+  align-items: center;
+  column-gap: 16px;
+  row-gap: 10px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--gridline);
+  animation: nr-fade 0.6s var(--ease-expo) both;
+  animation-delay: calc(0.5s + var(--i) * 0.07s);
+}
+.nr-rank {
+  grid-area: rank;
+  align-self: start;
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.nr-who {
+  grid-area: who;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+}
+.nr-who-name {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.nr-who-team {
+  font-size: 13px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.nr-row-prob {
+  grid-area: prob;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.nr-bar-thin {
+  grid-area: bar;
+  margin: 0;
+  height: 3px;
+  max-width: none;
+}
+.nr-bar-thin > span {
+  background: var(--seq-400);
+  animation-delay: calc(0.6s + var(--i) * 0.07s);
+}
+
+/* --- before qualifying: the race itself is the headline --- */
+
+.nr-pending {
+  display: block;
+}
+.nr .nr-race {
+  margin: 20px 0 0;
+  text-align: left;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: clamp(44px, 8vw, 120px);
+  line-height: 0.92;
+  letter-spacing: -0.04em;
+  text-transform: uppercase;
+  max-width: 12ch;
+  animation: nr-fade 0.8s var(--ease-expo) 0.1s both;
+}
+
+@media (max-width: 900px) {
+  .nr {
+    grid-template-columns: 1fr;
+    gap: 48px;
+    padding: 96px 16px 64px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nr *, .nr *::before { animation: none !important; }
+}

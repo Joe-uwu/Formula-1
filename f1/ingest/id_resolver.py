@@ -5,6 +5,7 @@ lineup resolution (f1/live/lineup.py) so both assign the same id to the same
 driver/constructor/circuit instead of drifting apart.
 """
 import re
+import unicodedata
 
 from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
@@ -12,6 +13,19 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 def slug(name: str) -> str:
     return re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_")
+
+
+def _ascii_lower(s: str) -> str:
+    return unicodedata.normalize("NFKD", s or "").encode("ascii", "ignore").decode().lower().strip()
+
+
+def driver_key(forename: str, surname: str) -> tuple[str, str]:
+    """Driver natural key. FastF1 names a driver differently depending on
+    which of its sources answered ("Andrea Kimi Antonelli" vs "Kimi
+    Antonelli", "Hülkenberg" vs "Hulkenberg"), so match on the last forename
+    token and the accent-stripped surname. Checked against every driver in
+    the DB: no two real drivers share this key."""
+    return ((_ascii_lower(forename).split() or [""])[-1], _ascii_lower(surname))
 
 
 class IdResolver:

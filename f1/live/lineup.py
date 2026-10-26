@@ -10,7 +10,7 @@ season backfill ingestion (f1/ingest/fastf1_results_ingest.py), so the
 point-in-time feature queries can run against this race's `as_of` date.
 """
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import fastf1
@@ -21,7 +21,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from f1.db.session import engine
 from f1.db.models import Circuit, Driver, Constructor, Race, Result, Season
-from f1.ingest.id_resolver import IdResolver, slug
+from f1.ingest.id_resolver import IdResolver, driver_key, slug
 
 SOURCE = "fastf1_live"
 CACHE_DIR = Path(__file__).resolve().parents[2] / ".fastf1_cache"
@@ -41,11 +41,12 @@ def next_unscored_race(year: int | None = None) -> tuple[int, int, str, "datetim
     (default: current UTC year), that doesn't yet have a completed result in
     the DB — i.e. the next race the pipeline hasn't scored, which may be a
     genuinely future race or a past one whose result just hasn't been
-    ingested yet. Rolls into `year + 1` once `year`'s calendar is exhausted.
+    ingested yet (up to 2 days after its race date). Rolls into `year + 1` once `year`'s calendar is exhausted.
     Returns (year, round_no, event_name, event_date).
     """
     _enable_cache()
-    start_year = year or datetime.utcnow().year
+    today = datetime.utcnow().date()
+    start_year = year or today.year
     with engine.connect() as conn:
         for y in (start_year, start_year + 1):
             schedule = fastf1.get_event_schedule(y, include_testing=False).sort_values("RoundNumber")
@@ -57,7 +58,9 @@ def next_unscored_race(year: int | None = None) -> tuple[int, int, str, "datetim
                     .where(Race.year == y, Race.round == round_no, Result.position.isnot(None))
                     .limit(1)
                 ).first()
-                if completed is None:
+                # A race weekend that's over but still has no result (cancelled,
+                # or results not ingested) must not pin "next race" in the past.
+                if completed is None and pd.Timestamp(ev["EventDate"]).date() >= today - timedelta(days=2):
                     return y, round_no, str(ev["EventName"]), pd.Timestamp(ev["EventDate"]).date()
     raise RuntimeError(f"No unscored race found on the FastF1 calendar for {start_year}-{start_year + 1}.")
 
@@ -129,14 +132,14 @@ def ensure_race_and_lineup(year: int, round_no: int):
         else:
             race_id = existing_race_id
 
-        driver_ids = IdResolver(conn, Driver, "driver_id", lambda r: (r.forename.lower(), r.surname.lower()))
+        driver_ids = IdResolver(conn, Driver, "driver_id", lambda r: driver_key(r.forename, r.surname))
         constructor_ids = IdResolver(conn, Constructor, "constructor_id", lambda r: r.name)
         next_result_id = conn.execute(select(func.coalesce(func.max(Result.result_id), 0))).scalar()
 
         resolved = []
         for row in lineup_rows:
             driver_id = driver_ids.get_or_create(
-                (row["forename"].lower(), row["surname"].lower()),
+                driver_key(row["forename"], row["surname"]),
                 lambda new_id, row=row: dict(driver_id=new_id, ref=slug(row["full_name"]),
                                                number=int(row["driver_number"]) if pd.notna(row["driver_number"]) else None,
                                                code=row["code"], forename=row["forename"], surname=row["surname"],

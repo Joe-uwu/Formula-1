@@ -3,7 +3,7 @@ import Hero from "../sections/Hero";
 import HistorySection from "../sections/HistorySection";
 import CarViewer from "../components/CarViewer";
 import MagicText from "../components/MagicText";
-import WinnerSignature from "../components/WinnerSignature";
+import NextRaceSection from "../sections/NextRaceSection";
 import { api } from "../api";
 import { useLenis } from "../lib/smoothScroll";
 import "./Home.css";
@@ -62,33 +62,7 @@ export default function Home() {
         <div className="reveal" ref={revealRef}>
           <section className="reveal-section next-race-wrap">
             <div className="next-race-hero">
-              <div className="next-race-split">
-                <h2 className="next-race-label">
-                  <span>Next</span>
-                  <span>Race</span>
-                  <span>Winner</span>
-                </h2>
-                <div className="next-race-panel">
-                  {upcoming?.status === "qualifying_not_done" ? (
-                    <>
-                      <div className="next-race-name">{upcoming.next_race}</div>
-                      <p className="next-race-message">{upcoming.message}</p>
-                    </>
-                  ) : upcoming?.status === "ok" ? (
-                    <>
-                      <div className="next-race-name">{upcoming.next_race}</div>
-                      <div className="winner-signature-wrap">
-                        <WinnerSignature name={upcoming.predictions[0].full_name} />
-                      </div>
-                      <p className="next-race-message">
-                        {upcoming.predictions[0].team}, {(upcoming.predictions[0].predicted_probability * 100).toFixed(1)}% win probability
-                      </p>
-                    </>
-                  ) : (
-                    <div className="spinner" />
-                  )}
-                </div>
-              </div>
+              {upcoming ? <NextRaceSection upcoming={upcoming} /> : <div className="spinner" />}
             </div>
           </section>
 

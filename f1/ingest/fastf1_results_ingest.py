@@ -23,7 +23,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from f1.db.session import engine, Session
 from f1.db.models import Circuit, Driver, Constructor, Race, Result, Qualifying, Season
-from f1.ingest.id_resolver import IdResolver, slug as _slug
+from f1.ingest.id_resolver import IdResolver, driver_key, slug as _slug
 
 SOURCE = "fastf1"
 CACHE_DIR = Path(__file__).resolve().parents[2] / ".fastf1_cache"
@@ -47,7 +47,7 @@ def ingest_season(year: int, rounds: list[int] | None = None) -> dict:
 
         circuit_ids = IdResolver(conn, Circuit, "circuit_id",
                                    lambda r: (r.name, r.location))
-        driver_ids = IdResolver(conn, Driver, "driver_id", lambda r: (r.forename.lower(), r.surname.lower()))
+        driver_ids = IdResolver(conn, Driver, "driver_id", lambda r: driver_key(r.forename, r.surname))
         constructor_ids = IdResolver(conn, Constructor, "constructor_id", lambda r: r.name)
         next_result_id = conn.execute(select(func.coalesce(func.max(Result.result_id), 0))).scalar()
         next_qualify_id = conn.execute(select(func.coalesce(func.max(Qualifying.qualify_id), 0))).scalar()
@@ -87,7 +87,7 @@ def ingest_season(year: int, rounds: list[int] | None = None) -> dict:
                 quali.load(laps=False, telemetry=False, weather=False, messages=False)
                 for _, r in quali.results.iterrows():
                     driver_id = driver_ids.get_or_create(
-                        (r["FirstName"].lower(), r["LastName"].lower()),
+                        driver_key(r["FirstName"], r["LastName"]),
                         lambda new_id, r=r: dict(driver_id=new_id, ref=_slug(r["FullName"]),
                                                    number=int(r["DriverNumber"]) if pd.notna(r["DriverNumber"]) else None,
                                                    code=r["Abbreviation"], forename=r["FirstName"],
@@ -129,7 +129,7 @@ def ingest_season(year: int, rounds: list[int] | None = None) -> dict:
                 race.load(laps=False, telemetry=False, weather=False, messages=False)
                 for _, r in race.results.iterrows():
                     driver_id = driver_ids.get_or_create(
-                        (r["FirstName"].lower(), r["LastName"].lower()),
+                        driver_key(r["FirstName"], r["LastName"]),
                         lambda new_id, r=r: dict(driver_id=new_id, ref=_slug(r["FullName"]),
                                                    number=int(r["DriverNumber"]) if pd.notna(r["DriverNumber"]) else None,
                                                    code=r["Abbreviation"], forename=r["FirstName"],

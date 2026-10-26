@@ -14,7 +14,11 @@ async function get(path, params) {
       if (v !== undefined && v !== null) url.searchParams.set(k, v);
     });
   }
-  const res = await fetch(url);
+  // no-cache = always revalidate (a cheap 304 when unchanged). The host's
+  // default max-age otherwise lets a browser keep serving the pre-qualifying
+  // snapshot after a redeploy, and a page refresh doesn't clear it because
+  // these fetches happen on click, not on load.
+  const res = await fetch(url, { cache: "no-cache" });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.detail || `${res.status} ${res.statusText}`);

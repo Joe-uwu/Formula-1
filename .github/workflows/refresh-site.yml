@@ -1,0 +1,97 @@
+# Keeps the live site current with no laptop involved: pulls finished race
+# results and fresh qualifying from FastF1, re-renders the static API JSON,
+# and redeploys when anything changed.
+#
+# The Postgres DB (incl. every pre-race prediction ever logged) persists
+# between runs as assets on the "db" GitHub release, alongside the model.
+name: Refresh site
+
+on:
+  schedule:
+    - cron: "17 * * * *" # hourly; quali results land on FastF1 ~1h after the session
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: refresh-site
+  cancel-in-progress: false
+
+permissions:
+  contents: write # upload the DB snapshot to the release
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    services:
+      db:
+        image: postgres:16
+        env:
+          POSTGRES_USER: f1
+          POSTGRES_PASSWORD: f1
+          POSTGRES_DB: f1
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U f1" --health-interval 5s --health-retries 20
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PGPASSWORD: f1
+      SITE: https://formula1-predictor.web.app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+      - run: pip install -r requirements.txt
+
+      - name: Restore DB and model
+        run: |
+          gh release download db --dir state
+          mkdir -p models && mv state/*.joblib models/
+          pg_restore -h localhost -U f1 -d f1 --no-owner --exit-on-error state/f1.dump
+
+      # No FastF1 cache restore on purpose: its HTTP cache serves data up to
+      # 12h old and its parsed-session cache never expires, either of which
+      # could hold back (or freeze) a just-finished qualifying.
+      - name: Ingest results, predict, snapshot
+        run: python scripts/snapshot_api.py
+
+      - name: Save DB
+        run: |
+          pg_dump -h localhost -U f1 -Fc f1 > state/f1.dump
+          gh release upload db state/f1.dump --clobber
+
+      - name: Did the data change?
+        id: diff
+        run: |
+          changed=false
+          for f in races/upcoming.json races/recent.json track-record.json; do
+            curl -fsS "$SITE/api/$f" -o live.json || { changed=true; break; }
+            cmp -s live.json "f1-dashboard/public/api/$f" || { changed=true; echo "changed: $f"; break; }
+          done
+          echo "changed=$changed" >> "$GITHUB_OUTPUT"
+
+      - if: steps.diff.outputs.changed == 'true' || github.event_name != 'schedule'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: f1-dashboard/package-lock.json
+
+      - if: steps.diff.outputs.changed == 'true' || github.event_name != 'schedule'
+        name: Build
+        run: npm ci --prefix f1-dashboard && npm --prefix f1-dashboard run build
+        env:
+          CI: false # CRA treats lint warnings as errors when CI=true
+
+      - if: steps.diff.outputs.changed == 'true' || github.event_name != 'schedule'
+        name: Deploy
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          projectId: formula1-predictor-app
+          channelId: live
