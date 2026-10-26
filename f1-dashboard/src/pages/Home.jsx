@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from "react";
 import Hero from "../sections/Hero";
 import HistorySection from "../sections/HistorySection";
 import CarViewer from "../components/CarViewer";
+import SiteFooter from "../components/SiteFooter";
 import MagicText from "../components/MagicText";
 import NextRaceSection from "../sections/NextRaceSection";
 import { api } from "../api";
@@ -88,16 +89,12 @@ export default function Home() {
           <section className="reveal-section model-page">
             <CarViewer lightsOn={lightsOn} onToggle={() => setLightsOn((v) => !v)} />
           </section>
+
+          {/* Only after the reveal, so it's always the last thing on the page. */}
+          <SiteFooter />
         </div>
       )}
 
-      <footer className="site-footer">
-        <span>Created by Joseph Suresh</span>
-        <nav className="site-footer-links">
-          <a href="mailto:josephprasanna987@gmail.com">josephprasanna987@gmail.com</a>
-          <a href="https://www.linkedin.com/in/joseph-prasanna-1aba592a3" target="_blank" rel="noopener noreferrer">LinkedIn</a>
-        </nav>
-      </footer>
     </>
   );
 }

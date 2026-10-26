@@ -1,0 +1,234 @@
+.ft {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 15% 0%, rgba(201, 74, 92, 0.12) 0%, transparent 55%),
+    var(--surface-0);
+  color: var(--text-primary);
+}
+
+/* --- chequered strip + the car crossing the line --- */
+
+.ft-flag {
+  position: relative;
+  height: 28px;
+  background: repeating-conic-gradient(#f2f2f2 0 25%, #111 0 50%) 0 0 / 28px 28px;
+  opacity: 0.9;
+}
+.ft-car {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  transform: translate(-80px, -50%);
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.7));
+}
+.ft-crossed .ft-car {
+  animation: ft-drive 2.4s cubic-bezier(0.55, 0, 0.2, 1) 0.2s forwards;
+}
+@keyframes ft-drive {
+  from { left: 0; transform: translate(-80px, -50%); }
+  to { left: 100%; transform: translate(80px, -50%); }
+}
+.ft-car-body { fill: var(--series-1); }
+.ft-car-wing { fill: #9c9c9c; }
+.ft-car-wheel { fill: #0c0c0c; }
+.ft-car-cockpit { fill: #1a1a1a; }
+
+/* --- main block --- */
+
+.ft-inner {
+  position: relative;
+  z-index: 1;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 88px 48px 64px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: 56px;
+  align-items: end;
+}
+
+.ft-kicker {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--series-1);
+  padding: 6px 10px;
+  border: 1px solid rgba(201, 74, 92, 0.45);
+  border-radius: 999px;
+}
+.ft-title {
+  margin: 20px 0 0;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: clamp(40px, 6vw, 88px);
+  line-height: 0.92;
+  letter-spacing: -0.04em;
+  text-transform: uppercase;
+}
+
+/* Timing-tower row */
+.ft-tower {
+  display: grid;
+  grid-template-columns: auto 4px 1fr auto;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  transform: skewX(-8deg);
+}
+.ft-tower > * { transform: skewX(8deg); }
+.ft-pos {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 22px;
+  font-variant-numeric: tabular-nums;
+}
+.ft-bar {
+  align-self: stretch;
+  background: var(--series-1);
+  border-radius: 2px;
+}
+.ft-driver {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.ft-driver-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+}
+.ft-driver-name {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: clamp(20px, 2.4vw, 28px);
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ft-time {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  color: var(--surface-0);
+  background: var(--text-primary);
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+/* Team-radio channels */
+.ft-radio {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 12px;
+}
+.ft-channel {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px 44px 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text-primary);
+  text-decoration: none;
+  isolation: isolate;
+  transition: border-color 0.3s var(--ease-expo);
+}
+.ft-channel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--series-1);
+  transform: translateX(-101%);
+  transition: transform 0.45s var(--ease-expo);
+}
+.ft-channel:hover::before,
+.ft-channel:focus-visible::before { transform: none; }
+.ft-channel:hover,
+.ft-channel:focus-visible { border-color: var(--series-1); }
+.ft-channel-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  transition: color 0.3s;
+}
+.ft-channel:hover .ft-channel-label,
+.ft-channel:focus-visible .ft-channel-label { color: rgba(255, 255, 255, 0.8); }
+.ft-channel-value {
+  font-weight: 600;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ft-arrow {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  font-size: 18px;
+  transition: transform 0.35s var(--ease-expo);
+}
+.ft-channel:hover .ft-arrow,
+.ft-channel:focus-visible .ft-arrow { transform: translate(3px, -3px); }
+
+/* --- base line --- */
+
+.ft-base {
+  position: relative;
+  z-index: 1;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 20px 48px 32px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px 24px;
+  border-top: 1px solid var(--gridline);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.ft-ghost {
+  position: absolute;
+  right: -1vw;
+  bottom: -4vw;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 26vw;
+  line-height: 1;
+  letter-spacing: -0.05em;
+  color: rgba(255, 255, 255, 0.035);
+  pointer-events: none;
+  user-select: none;
+}
+
+@media (max-width: 900px) {
+  .ft-inner {
+    grid-template-columns: 1fr;
+    gap: 40px;
+    padding: 64px 16px 48px;
+  }
+  .ft-base { padding: 20px 16px 28px; }
+}
+@media (max-width: 520px) {
+  .ft-radio { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ft-crossed .ft-car { animation: none; left: 100%; transform: translate(80px, -50%); }
+  .ft-channel::before, .ft-arrow { transition: none; }
+}
