@@ -47,11 +47,13 @@ jobs:
           cache: pip
       - run: pip install -r requirements.txt
 
+      # pg tools run inside the db container so their version always matches
+      # the server (the runner's own client is newer and postgres:16 rejects it).
       - name: Restore DB and model
         run: |
           gh release download db --dir state
           mkdir -p models && mv state/*.joblib models/
-          pg_restore -h localhost -U f1 -d f1 --no-owner --exit-on-error state/f1.dump
+          docker exec -i ${{ job.services.db.id }} pg_restore -U f1 -d f1 --no-owner --exit-on-error < state/f1.dump
 
       # No FastF1 cache restore on purpose: its HTTP cache serves data up to
       # 12h old and its parsed-session cache never expires, either of which
@@ -61,7 +63,7 @@ jobs:
 
       - name: Save DB
         run: |
-          pg_dump -h localhost -U f1 -Fc f1 > state/f1.dump
+          docker exec ${{ job.services.db.id }} pg_dump -U f1 -Fc f1 > state/f1.dump
           gh release upload db state/f1.dump --clobber
 
       - name: Did the data change?
